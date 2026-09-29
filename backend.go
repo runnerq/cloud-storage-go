@@ -19,7 +19,6 @@ import (
 type CloudBackend struct {
 	endpoint, key, queue string
 	client               *http.Client
-	labels               map[string]string
 	heartbeat            time.Duration
 	reporters            reporters
 }

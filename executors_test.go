@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alob-mtc/runnerq-go/storage"
+	"github.com/alob-mtc/runnerq-go/executor"
 	"github.com/google/uuid"
 	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
 )
@@ -29,15 +29,24 @@ func TestExecutorReports(t *testing.T) {
 		_, _ = w.Write([]byte(`{"result":null}`))
 	}))
 	defer server.Close()
-	b, err := NewCloudBackend("rqh_secret", WithEndpoint(server.URL), WithQueue("payments"), WithLabels(map[string]string{"region": "eu"}))
+	b, err := NewCloudBackend("rqh_secret", WithEndpoint(server.URL), WithQueue("payments"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	b.heartbeat = 20 * time.Millisecond
-	running := storage.RunningActivity{ID: uuid.New(), Type: "charge", Attempt: 2, StartedAt: time.Now().UTC()}
-	started := time.Now().UTC()
-	b.ExecutorStarted(storage.ExecutorInfo{ID: "exec-1", Queue: "payments", ActivityTypes: []string{"charge"}, MaxConcurrency: 4, StartedAt: started},
-		func() storage.ExecutorState { return storage.ExecutorState{Running: []storage.RunningActivity{running}} })
+	started := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
+	running := executor.Running{ID: uuid.New(), Type: "charge", Attempt: 2, StartedAt: started.Add(time.Minute)}
+	src := source{
+		Info: executor.Info{
+			ID: "exec-1", Queue: "payments", ActivityTypes: []string{"charge"}, MaxConcurrency: 4, StartedAt: started,
+			Hostname: "worker-a", SDK: executor.SDK{Name: "runnerq-go", Version: "v1.2.3", Language: "go"},
+			Labels: map[string]string{"region": "eu"},
+		},
+		State:    executor.State{Running: []executor.Running{running}},
+		Counters: executor.Counters{Claimed: 5, Succeeded: 3, DeadLettered: 1, HeartbeatFailures: 2, LastClaimLag: 1500 * time.Millisecond},
+		At:       started.Add(2 * time.Minute),
+	}
+	b.ExecutorStarted(src)
 
 	deadline := time.Now().Add(2 * time.Second)
 	for {
@@ -63,10 +72,16 @@ func TestExecutorReports(t *testing.T) {
 
 	first := got[0]
 	r := first.report
+	ex, st := r.Executor, r.State
 	if first.method != http.MethodPut || first.path != "/v1/executors/exec-1" || first.auth != "Bearer rqh_secret" ||
-		r.Queue != "payments" || r.MaxConcurrency != 4 || r.Labels["region"] != "eu" || r.SDK.Name != "runnerq-go" ||
-		len(r.Running) != 1 || r.Running[0].ActivityID != running.ID.String() || r.Running[0].Attempt != 2 || !r.StartedAt.Equal(started) {
+		r.SDK.Version != "v1.2.3" || ex.ID != "exec-1" || ex.Hostname != "worker-a" || len(ex.Queues) != 1 || ex.Queues[0] != "payments" ||
+		ex.MaxConcurrency != 4 || ex.Labels["region"] != "eu" || ex.StartedAt != "2026-09-29T12:00:00.000Z" {
 		t.Fatalf("first report: %+v", first)
+	}
+	if st.ID != "exec-1" || st.UptimeMS != 120_000 || st.InFlight != 1 || len(st.Running) != 1 ||
+		st.Running[0].ActivityID != running.ID.String() || st.Running[0].Attempt != 2 || st.Running[0].StartedAt != "2026-09-29T12:01:00.000Z" ||
+		st.ClaimLagMS != 1500 || st.HeartbeatFailures != 2 || st.Counters == nil || st.Counters.Claimed != 5 || st.Counters.DeadLettered != 1 {
+		t.Fatalf("first state: %+v", st)
 	}
 	last := got[len(got)-1]
 	if last.method != http.MethodDelete || last.path != "/v1/executors/exec-1" {
@@ -76,3 +91,8 @@ func TestExecutorReports(t *testing.T) {
 		t.Fatalf("%d calls after the goodbye", after-len(got))
 	}
 }
+
+// source is a fixed snapshot.
+type source executor.Snapshot
+
+func (s source) Snapshot() executor.Snapshot { return executor.Snapshot(s) }

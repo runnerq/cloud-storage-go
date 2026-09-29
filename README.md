@@ -33,12 +33,12 @@ appears in the store the first time a worker uses it. Keys and retention are
 managed in the RunnerQ Cloud console (or the data-plane admin API).
 
 Each engine built on the backend reports itself to the data plane every 10
-seconds (identity, queue, activity types, capacity, activities in flight) and
-says goodbye when it stops, so RunnerQ Cloud's Fleet shows a hosted app's
-workers with no agent. `WithLabels(map[string]string{...})` tags them
-(region, deploy version). This uses the SDK's
-`storage.ExecutorReportingStorage`; reporting failures are logged and never
-affect the worker.
+seconds and says goodbye when it stops, so RunnerQ Cloud's Fleet shows a
+hosted app's workers with no agent. The report is the engine's snapshot
+(identity, labels from `WorkerConfig.Labels`, activities in flight, outcome
+counters, claim lag), in the same shape a conductor agent reports. The
+backend is an `executor.Observer`, which the engine attaches on its own;
+reporting failures are logged and never affect the worker.
 
 Implemented capabilities: `storage.Storage`, `BatchQueueStorage`, `ResultWaiter`,
 `AttemptLeaseStorage`, `CheckpointStorage`, `SpawnStorage`, `DependencyStorage`

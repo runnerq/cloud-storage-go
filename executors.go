@@ -6,23 +6,15 @@ import (
 	"encoding/json"
 	"io"
 	"log/slog"
-	"maps"
 	"net/http"
 	"net/url"
-	"os"
-	"runtime/debug"
 	"sync"
 	"time"
 
+	"github.com/alob-mtc/runnerq-go/executor"
 	"github.com/alob-mtc/runnerq-go/storage"
 	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
 )
-
-// WithLabels tags this worker's executors in RunnerQ Cloud's Fleet (region,
-// deploy version, ...).
-func WithLabels(labels map[string]string) Option {
-	return func(b *CloudBackend) { b.labels = maps.Clone(labels) }
-}
 
 // reporters holds the heartbeat of each engine running on the backend.
 type reporters struct {
@@ -32,37 +24,27 @@ type reporters struct {
 
 // ExecutorStarted reports the engine to the data plane now and every
 // protocol.HeartbeatInterval until it stops, so the console shows it in
-// Fleet. Reporting never affects the engine: failures are logged and
-// retried at the next beat.
-func (b *CloudBackend) ExecutorStarted(info storage.ExecutorInfo, state func() storage.ExecutorState) {
+// Fleet. The engine calls it (the backend is an executor.Observer).
+// Reporting never affects the engine: failures are logged and retried at
+// the next beat.
+func (b *CloudBackend) ExecutorStarted(src executor.Source) {
+	id := src.Snapshot().Info.ID
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
 	b.reporters.mu.Lock()
 	if b.reporters.stop == nil {
 		b.reporters.stop = map[string]func(){}
 	}
-	b.reporters.stop[info.ID] = func() { cancel(); <-done }
+	b.reporters.stop[id] = func() { cancel(); <-done }
 	b.reporters.mu.Unlock()
 
-	host, _ := os.Hostname()
 	go func() {
 		defer close(done)
 		tick := time.NewTicker(b.heartbeat)
 		defer tick.Stop()
 		for {
-			st := state()
-			report := protocol.ExecutorReport{
-				Queue: info.Queue, Hostname: host, SDK: sdkInfo(), ActivityTypes: info.ActivityTypes,
-				MaxConcurrency: info.MaxConcurrency, StartedAt: info.StartedAt, Draining: st.Draining,
-				Running: make([]protocol.RunningActivity, 0, len(st.Running)), Labels: b.labels,
-			}
-			for _, r := range st.Running {
-				report.Running = append(report.Running, protocol.RunningActivity{
-					ActivityID: r.ID.String(), Type: r.Type, Attempt: r.Attempt, StartedAt: r.StartedAt,
-				})
-			}
-			if err := b.executorCall(ctx, http.MethodPut, info.ID, report); err != nil && ctx.Err() == nil {
-				slog.Warn("RunnerQ Cloud: executor report failed; retrying", "executor", info.ID, "error", err)
+			if err := b.executorCall(ctx, http.MethodPut, id, reportOf(src.Snapshot())); err != nil && ctx.Err() == nil {
+				slog.Warn("RunnerQ Cloud: executor report failed; retrying", "executor", id, "error", err)
 			}
 			select {
 			case <-ctx.Done():
@@ -124,17 +106,38 @@ func (b *CloudBackend) executorCall(ctx context.Context, method, id string, body
 	return nil
 }
 
-// sdkInfo names the RunnerQ SDK compiled into the worker.
-func sdkInfo() protocol.SDKInfo {
-	info := protocol.SDKInfo{Name: "runnerq-go", Language: "go"}
-	if bi, ok := debug.ReadBuildInfo(); ok {
-		for _, dep := range bi.Deps {
-			if dep.Path == "github.com/alob-mtc/runnerq-go" {
-				info.Version = dep.Version
-			}
-		}
+// reportOf is a snapshot as an agent would report it.
+func reportOf(snap executor.Snapshot) protocol.ExecutorReport {
+	info, st, c := snap.Info, snap.State, snap.Counters
+	r := protocol.ExecutorReport{
+		SDK: protocol.SDKInfo{Name: info.SDK.Name, Version: info.SDK.Version, Language: info.SDK.Language},
+		Executor: protocol.ExecutorInfo{
+			ID: info.ID, Hostname: info.Hostname, Queues: []string{info.Queue}, ActivityTypes: info.ActivityTypes,
+			MaxConcurrency: info.MaxConcurrency, StartedAt: timestamp(info.StartedAt), Labels: info.Labels,
+		},
+		State: protocol.ExecutorState{
+			ID: info.ID, UptimeMS: snap.At.Sub(info.StartedAt).Milliseconds(), MaxConcurrency: info.MaxConcurrency,
+			InFlight: len(st.Running), ClaimLagMS: c.LastClaimLag.Milliseconds(), HeartbeatFailures: c.HeartbeatFailures,
+			Draining: st.Draining,
+			Counters: &protocol.Counters{
+				Claimed: c.Claimed, Succeeded: c.Succeeded, Retried: c.Retried, Failed: c.Failed,
+				TimedOut: c.TimedOut, DeadLettered: c.DeadLettered, ClaimsLost: c.ClaimsLost,
+			},
+		},
 	}
-	return info
+	for _, a := range st.Running {
+		r.State.Running = append(r.State.Running, protocol.RunningActivity{
+			ActivityID: a.ID.String(), Type: a.Type, Attempt: a.Attempt, StartedAt: timestamp(a.StartedAt),
+		})
+	}
+	return r
 }
 
-var _ storage.ExecutorReportingStorage = (*CloudBackend)(nil)
+func timestamp(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format("2006-01-02T15:04:05.000Z07:00")
+}
+
+var _ executor.Observer = (*CloudBackend)(nil)
