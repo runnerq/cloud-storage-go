@@ -18,7 +18,7 @@ for interface in interfaces:
     block=re.search(r'type '+interface+r' interface \{(.*?)\n\}',src,re.S)[1]
     for line in block.splitlines():
         m=re.match(r'\s*(\w+)\(ctx context.Context(?:, (.*?))?\) (.+)$',line)
-        if not m or m[1]=='EventStream': continue
+        if not m: continue
         name,args,returns=m.groups(); params=[]; pending=[]
         for part in (args or '').split(', '):
             if not part:continue
