@@ -137,3 +137,23 @@ type YieldForResultArgs struct {
 	Kind       string     `json:"kind"`
 	Step       string     `json:"step"`
 }
+type DequeueBatchEncodedArgs struct {
+	WorkerIDPrefix string        `json:"workerIDPrefix"`
+	Limit          int           `json:"limit"`
+	Timeout        time.Duration `json:"timeout"`
+	ActivityTypes  []string      `json:"activityTypes"`
+	Serializations []string      `json:"serializations"`
+}
+type AckSuccessEncodedArgs struct {
+	ActivityID    uuid.UUID       `json:"activityID"`
+	Result        json.RawMessage `json:"result"`
+	Serialization string          `json:"serialization"`
+	WorkerID      string          `json:"workerID"`
+}
+type SignalActivityEncodedArgs struct {
+	ActivityID    uuid.UUID       `json:"activityID"`
+	SignalID      uuid.UUID       `json:"signalID"`
+	Name          string          `json:"name"`
+	Payload       json.RawMessage `json:"payload"`
+	Serialization string          `json:"serialization"`
+}
