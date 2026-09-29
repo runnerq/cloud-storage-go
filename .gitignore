@@ -1,0 +1,6 @@
+# Build output and local tooling
+/bin/
+*.test
+*.out
+__pycache__/
+.DS_Store
