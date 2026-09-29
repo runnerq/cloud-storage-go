@@ -26,6 +26,7 @@ func TestExecutorReports(t *testing.T) {
 		mu.Lock()
 		calls = append(calls, c)
 		mu.Unlock()
+		w.Header().Set("RunnerQ-Storage-Version", protocol.Version)
 		_, _ = w.Write([]byte(`{"result":null}`))
 	}))
 	defer server.Close()
@@ -107,6 +108,7 @@ func TestExecutorReportsChanges(t *testing.T) {
 		if r.Method == http.MethodPut {
 			puts <- struct{}{}
 		}
+		w.Header().Set("RunnerQ-Storage-Version", protocol.Version)
 		_, _ = w.Write([]byte(`{"result":null}`))
 	}))
 	defer server.Close()

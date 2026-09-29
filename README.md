@@ -58,16 +58,16 @@ Result waits renew bounded long polls.
 ## Development
 
 For a complete runnable worker, see [Hello Cloud](examples/hello-cloud/README.md).
-It includes local service setup, queue provisioning, two durable checkpoints,
-and rerunning the same request to retrieve its persisted result:
+It runs two durable checkpoints and reruns the same request to retrieve its
+persisted result:
 
 ```sh
 go run ./examples/hello-cloud -name Ada -request-id hello-001
 ```
 
-This module pins RunnerQ to an unreleased `main` commit. The data-plane module
-replaces this module locally. Before publishing, release compatible RunnerQ and
-adapter versions and remove the development replacement.
+This module pins RunnerQ to an unreleased `main` commit, and the data plane pins
+a published version of this module. Before publishing, release compatible
+RunnerQ and adapter versions.
 
 ```sh
 go test -race ./...

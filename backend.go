@@ -31,8 +31,9 @@ func WithEndpoint(endpoint string) Option {
 func WithQueue(queue string) Option             { return func(b *CloudBackend) { b.queue = queue } }
 func WithHTTPClient(client *http.Client) Option { return func(b *CloudBackend) { b.client = client } }
 
-// NewCloudBackend creates a queue-scoped client. Endpoint is explicit until the
-// hosted service has a public address. Plain HTTP is allowed only on loopback.
+// NewCloudBackend creates a client for one queue (WithQueue, default
+// "default") in the store apiKey belongs to; a store key reaches every queue in
+// its store. Endpoint is explicit until the hosted service has a public address. Plain HTTP is allowed only on loopback.
 func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
 	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{}, heartbeat: protocol.HeartbeatInterval, reportGap: protocol.MinReportGap}
 	for _, o := range options {
@@ -55,14 +56,27 @@ func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
 func (b *CloudBackend) SchedulesNatively() bool  { return true }
 func (b *CloudBackend) MaintenanceManaged() bool { return true }
 
-func (b *CloudBackend) request(ctx context.Context, method string, args any) (*http.Response, error) {
-	data, err := json.Marshal(args)
-	if err != nil {
-		return nil, storage.NewSerializationError("encode storage request")
+// call runs one storage operation on the backend's queue.
+func (b *CloudBackend) call(ctx context.Context, method string, args, out any) error {
+	ctx, cancel := context.WithTimeout(ctx, 35*time.Second)
+	defer cancel()
+	return b.request(ctx, http.MethodPost, "/v1/queues/"+url.PathEscape(b.queue)+"/"+method, args, out)
+}
+
+// request sends args (no body when nil) to the data plane and decodes the
+// response envelope's result into out (unless nil).
+func (b *CloudBackend) request(ctx context.Context, verb, path string, args, out any) error {
+	var body io.Reader
+	if args != nil {
+		data, err := json.Marshal(args)
+		if err != nil {
+			return storage.NewSerializationError("encode storage request")
+		}
+		body = bytes.NewReader(data)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, b.endpoint+"/v1/queues/"+url.PathEscape(b.queue)+"/"+method, bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(ctx, verb, b.endpoint+path, body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+b.key)
 	req.Header.Set("Content-Type", "application/json")
@@ -70,19 +84,9 @@ func (b *CloudBackend) request(ctx context.Context, method string, args any) (*h
 	res, err := b.client.Do(req)
 	if err != nil {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return ctx.Err()
 		}
-		return nil, storage.NewUnavailableError("storage transport failed; outcome may be unknown")
-	}
-	return res, nil
-}
-
-func (b *CloudBackend) call(ctx context.Context, method string, args, out any) error {
-	ctx, cancel := context.WithTimeout(ctx, 35*time.Second)
-	defer cancel()
-	res, err := b.request(ctx, method, args)
-	if err != nil {
-		return err
+		return storage.NewUnavailableError("storage transport failed; outcome may be unknown")
 	}
 	defer res.Body.Close()
 	var response protocol.Response
