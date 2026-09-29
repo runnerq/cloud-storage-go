@@ -35,7 +35,18 @@ func (b *CloudBackend) ExecutorStarted(src executor.Source) {
 	if b.reporters.stop == nil {
 		b.reporters.stop = map[string]func(){}
 	}
-	b.reporters.stop[id] = func() { cancel(); <-done }
+	// Stopping ends the loop, then sends one last report: the loop's latest
+	// may be up to a heartbeat old, and Fleet keeps what a stopped worker
+	// last said.
+	b.reporters.stop[id] = func() {
+		cancel()
+		<-done
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := b.executorCall(ctx, http.MethodPut, id, reportOf(src.Snapshot())); err != nil {
+			slog.Warn("RunnerQ Cloud: final executor report failed", "executor", id, "error", err)
+		}
+	}
 	b.reporters.mu.Unlock()
 
 	go func() {
@@ -49,8 +60,9 @@ func (b *CloudBackend) ExecutorStarted(src executor.Source) {
 	}()
 }
 
-// ExecutorStopped stops the engine's heartbeat and says goodbye, so the
-// console shows a clean stop rather than a lost worker.
+// ExecutorStopped stops the engine's heartbeat, sends a final report and
+// says goodbye, so the console shows a clean stop, with the worker's final
+// counts, rather than a lost worker.
 func (b *CloudBackend) ExecutorStopped(id string) {
 	b.reporters.mu.Lock()
 	stop := b.reporters.stop[id]

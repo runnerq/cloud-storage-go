@@ -87,6 +87,10 @@ func TestExecutorReports(t *testing.T) {
 	if last.method != http.MethodDelete || last.path != "/v1/executors/exec-1" {
 		t.Fatalf("last call: %+v", last)
 	}
+	// A final report goes out just before the goodbye.
+	if final := got[len(got)-2]; final.method != http.MethodPut || final.report.State.ID != "exec-1" {
+		t.Fatalf("call before the goodbye: %+v", final)
+	}
 	if after != len(got) {
 		t.Fatalf("%d calls after the goodbye", after-len(got))
 	}
