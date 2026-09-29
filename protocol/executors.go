@@ -66,3 +66,7 @@ type Counters struct {
 // HeartbeatInterval is how often a worker reports. The data plane treats a
 // worker as gone after three missed reports.
 const HeartbeatInterval = 10 * time.Second
+
+// MinReportGap spaces the extra reports a worker sends soon after it
+// changes (an activity starting or finishing, or a drain beginning).
+const MinReportGap = 2 * time.Second

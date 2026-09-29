@@ -96,3 +96,36 @@ func TestExecutorReports(t *testing.T) {
 type source executor.Snapshot
 
 func (s source) Snapshot() executor.Snapshot { return executor.Snapshot(s) }
+
+func TestExecutorReportsChanges(t *testing.T) {
+	puts := make(chan struct{}, 16)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			puts <- struct{}{}
+		}
+		_, _ = w.Write([]byte(`{"result":null}`))
+	}))
+	defer server.Close()
+	b, err := NewCloudBackend("rqh_secret", WithEndpoint(server.URL))
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.heartbeat, b.reportGap = time.Hour, 20*time.Millisecond
+	src := &changing{source: source{Info: executor.Info{ID: "exec-1", Queue: "default"}}}
+	b.ExecutorStarted(src)
+	defer b.ExecutorStopped("exec-1")
+	<-puts // on start
+
+	src.Notify()
+	select {
+	case <-puts:
+	case <-time.After(2 * time.Second):
+		t.Fatal("a change wasn't reported before the heartbeat")
+	}
+}
+
+// changing is a snapshot that can signal changes.
+type changing struct {
+	source
+	executor.Signal
+}

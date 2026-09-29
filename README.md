@@ -33,7 +33,8 @@ appears in the store the first time a worker uses it. Keys and retention are
 managed in the RunnerQ Cloud console (or the data-plane admin API).
 
 Each engine built on the backend reports itself to the data plane every 10
-seconds and says goodbye when it stops, so RunnerQ Cloud's Fleet shows a
+seconds, and within about two seconds of a change (an activity starting or
+finishing, or a drain beginning), and says goodbye when it stops, so RunnerQ Cloud's Fleet shows a
 hosted app's workers with no agent. The report is the engine's snapshot
 (identity, labels from `WorkerConfig.Labels`, activities in flight, outcome
 counters, claim lag), in the same shape a conductor agent reports. The
