@@ -17,6 +17,7 @@ import (
 	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
+// CloudBackend is RunnerQ storage for one queue in a RunnerQ Cloud store.
 type CloudBackend struct {
 	endpoint, queue, auth, queueURL string
 	client                          *http.Client
@@ -25,8 +26,10 @@ type CloudBackend struct {
 	reporters                       map[string]func() // executor id -> stop
 }
 
+// Option configures NewCloudBackend.
 type Option func(*CloudBackend)
 
+// WithEndpoint sets the data plane's address (required).
 func WithEndpoint(endpoint string) Option {
 	return func(b *CloudBackend) { b.endpoint = strings.TrimRight(endpoint, "/") }
 }
