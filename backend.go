@@ -13,7 +13,7 @@ import (
 
 	"github.com/alob-mtc/runnerq-go/storage"
 	"github.com/google/uuid"
-	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
+	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
 type CloudBackend struct {

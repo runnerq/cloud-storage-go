@@ -31,8 +31,8 @@ for interface in interfaces:
         if interface=='Reader': reader.add(name)
 imports='''import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage")\n'''
 wire=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage protocol\n',imports.replace('"context"; ','' )]
-client=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage backend\n',imports, 'import "github.com/runnerq/runnerq-cloud-storage-go/protocol"\n']
-server=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage rpc\n', 'import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage"; "github.com/runnerq/runnerq-cloud-storage-go/protocol")\n','type Backend interface { storage.Storage; storage.BatchQueueStorage; storage.AttemptLeaseStorage; storage.CheckpointStorage; storage.SpawnStorage; storage.DependencyStorage; storage.ResultWaiter; reader }\n','func dispatch(ctx context.Context,b Backend,method string,body json.RawMessage)(any,error){ switch method {\n']
+client=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage backend\n',imports, 'import "github.com/runnerq/cloud-storage-go/protocol"\n']
+server=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage rpc\n', 'import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage"; "github.com/runnerq/cloud-storage-go/protocol")\n','type Backend interface { storage.Storage; storage.BatchQueueStorage; storage.AttemptLeaseStorage; storage.CheckpointStorage; storage.SpawnStorage; storage.DependencyStorage; storage.ResultWaiter; reader }\n','func dispatch(ctx context.Context,b Backend,method string,body json.RawMessage)(any,error){ switch method {\n']
 reads=[]
 for name,(params,ret) in methods.items():
     if name not in reader: continue

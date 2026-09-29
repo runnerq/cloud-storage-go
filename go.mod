@@ -1,4 +1,4 @@
-module github.com/runnerq/runnerq-cloud-storage-go
+module github.com/runnerq/cloud-storage-go
 
 go 1.27
 

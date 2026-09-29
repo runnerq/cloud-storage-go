@@ -8,7 +8,7 @@ through the independent RunnerQ data plane.
 import (
     "os"
     "github.com/alob-mtc/runnerq-go"
-    backend "github.com/runnerq/runnerq-cloud-storage-go"
+    backend "github.com/runnerq/cloud-storage-go"
 )
 
 cloud, err := backend.NewCloudBackend(

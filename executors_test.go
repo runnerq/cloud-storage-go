@@ -10,7 +10,7 @@ import (
 
 	"github.com/alob-mtc/runnerq-go/executor"
 	"github.com/google/uuid"
-	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
+	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
 func TestExecutorReports(t *testing.T) {
