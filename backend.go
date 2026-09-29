@@ -1,4 +1,4 @@
-// Package backend provides the external RunnerQ Cloud storage adapter.
+// Package backend is RunnerQ's storage on RunnerQ Cloud's data plane.
 package backend
 
 import (
@@ -17,27 +17,34 @@ import (
 	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
+// CloudBackend is one queue's storage in a RunnerQ Cloud store.
 type CloudBackend struct {
-	endpoint, key, queue string
-	auth, queueURL       string
-	client               *http.Client
-	heartbeat            time.Duration
-	reportGap            time.Duration
-	reporters            reporters
+	endpoint, queue, auth, queueURL string
+	client                          *http.Client
+	heartbeat, reportGap            time.Duration
+	mu                              sync.Mutex
+	reporters                       map[string]func() // executor id -> stop
 }
+
+// Option configures a CloudBackend.
 type Option func(*CloudBackend)
 
+// WithEndpoint sets the data plane's address (required).
 func WithEndpoint(endpoint string) Option {
 	return func(b *CloudBackend) { b.endpoint = strings.TrimRight(endpoint, "/") }
 }
-func WithQueue(queue string) Option             { return func(b *CloudBackend) { b.queue = queue } }
+
+// WithQueue sets the queue (default "default").
+func WithQueue(queue string) Option { return func(b *CloudBackend) { b.queue = queue } }
+
+// WithHTTPClient sets the HTTP client; redirects are disabled on a copy of it.
 func WithHTTPClient(client *http.Client) Option { return func(b *CloudBackend) { b.client = client } }
 
-// NewCloudBackend creates a client for one queue (WithQueue, default
-// "default") in the store apiKey belongs to; a store key reaches every queue in
-// its store. Endpoint is explicit until the hosted service has a public address. Plain HTTP is allowed only on loopback.
+// NewCloudBackend creates the storage for one queue in apiKey's store (a store
+// key reaches every queue in it). The endpoint must be HTTPS, or HTTP on loopback.
 func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
-	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{Transport: defaultTransport()}, heartbeat: protocol.HeartbeatInterval, reportGap: protocol.MinReportGap}
+	b := &CloudBackend{queue: "default", client: &http.Client{Transport: defaultTransport()}, heartbeat: protocol.HeartbeatInterval,
+		reportGap: protocol.MinReportGap, reporters: map[string]func(){}}
 	for _, o := range options {
 		o(b)
 	}
@@ -45,21 +52,20 @@ func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
 	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"))) {
 		return nil, storage.NewConfigurationError("provide an HTTPS data-plane endpoint (HTTP is allowed on loopback)")
 	}
-	if b.key == "" || b.queue == "" || b.client == nil {
+	if apiKey == "" || b.queue == "" || b.client == nil {
 		return nil, storage.NewConfigurationError("API key, queue and HTTP client are required")
 	}
-	// Do not leak credentials or replay a write through an HTTP redirect.
+	// A followed redirect would forward the key or replay a write.
 	c := *b.client
 	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	b.client = &c
-	b.auth = "Bearer " + b.key
+	b.auth = "Bearer " + apiKey
 	b.queueURL = b.endpoint + "/v1/queues/" + url.PathEscape(b.queue) + "/"
 	return b, nil
 }
 
-// defaultTransport is http.DefaultTransport keeping up to MaxIdleConns idle
-// connections to the data plane instead of two, so a busy worker's
-// concurrent HTTP/1.1 calls reuse connections rather than redialing.
+// defaultTransport is http.DefaultTransport keeping MaxIdleConns (not two)
+// idle connections per host, so concurrent HTTP/1.1 calls don't redial.
 var defaultTransport = sync.OnceValue(func() http.RoundTripper {
 	t, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
@@ -70,18 +76,22 @@ var defaultTransport = sync.OnceValue(func() http.RoundTripper {
 	return t
 })
 
-func (b *CloudBackend) SchedulesNatively() bool  { return true }
+// SchedulesNatively is true: dequeue handles scheduled activities.
+func (b *CloudBackend) SchedulesNatively() bool { return true }
+
+// MaintenanceManaged is true: the data plane runs lease recovery and retention.
 func (b *CloudBackend) MaintenanceManaged() bool { return true }
 
-// call runs one storage operation on the backend's queue.
+// call runs a storage operation on the queue. storaged bounds a request at
+// 30s and a long poll at 25s; the extra 5s is for the network.
 func (b *CloudBackend) call(ctx context.Context, method string, args, out any) error {
 	ctx, cancel := context.WithTimeout(ctx, 35*time.Second)
 	defer cancel()
 	return b.request(ctx, http.MethodPost, b.queueURL+method, args, out)
 }
 
-// request sends args (no body when nil) to the data plane and decodes the
-// response envelope's result into out (unless nil).
+// request sends args (none if nil) and decodes the envelope's result into out
+// (if not nil). A lost or garbled reply is unavailable: the write may have committed.
 func (b *CloudBackend) request(ctx context.Context, verb, target string, args, out any) error {
 	var body io.Reader
 	if args != nil {
@@ -106,7 +116,7 @@ func (b *CloudBackend) request(ctx context.Context, verb, target string, args, o
 		return storage.NewUnavailableError("storage transport failed; outcome may be unknown")
 	}
 	defer res.Body.Close()
-	// Reading to EOF lets the connection be reused; Unmarshal is also cheaper than a Decoder.
+	// Read to EOF so the connection is reused.
 	data, err := io.ReadAll(io.LimitReader(res.Body, 16<<20))
 	var response protocol.Response
 	if err == nil {
@@ -132,7 +142,7 @@ func (b *CloudBackend) request(ctx context.Context, verb, target string, args, o
 	return nil
 }
 
-// WaitForResult reconnects only after a bounded server-side read timeout.
+// WaitForResult long-polls, asking again each time the data plane's wait times out.
 func (b *CloudBackend) WaitForResult(ctx context.Context, id uuid.UUID) (*storage.ActivityResult, error) {
 	for {
 		var result *storage.ActivityResult
