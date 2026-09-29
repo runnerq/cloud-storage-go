@@ -1,10 +1,7 @@
 package backend
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -12,7 +9,6 @@ import (
 	"time"
 
 	"github.com/alob-mtc/runnerq-go/executor"
-	"github.com/alob-mtc/runnerq-go/storage"
 	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
@@ -78,38 +74,13 @@ func (b *CloudBackend) ExecutorStopped(id string) {
 	}
 }
 
+// executorCall reports to (PUT) or says goodbye to (DELETE) the executor
+// endpoint, with a shorter timeout than storage calls: reporting is best
+// effort and must not hold up the engine.
 func (b *CloudBackend) executorCall(ctx context.Context, method, id string, body any) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	var reader io.Reader
-	if body != nil {
-		data, err := json.Marshal(body)
-		if err != nil {
-			return err
-		}
-		reader = bytes.NewReader(data)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, b.endpoint+"/v1/executors/"+url.PathEscape(id), reader)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+b.key)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("RunnerQ-Storage-Version", protocol.Version)
-	res, err := b.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	var response protocol.Response
-	_ = json.NewDecoder(io.LimitReader(res.Body, 1<<20)).Decode(&response)
-	if response.Error != nil {
-		return response.Error.StorageError()
-	}
-	if res.StatusCode != http.StatusOK {
-		return storage.NewUnavailableError("unexpected executor report response: " + res.Status)
-	}
-	return nil
+	return b.request(ctx, method, "/v1/executors/"+url.PathEscape(id), body, nil)
 }
 
 // reportOf is a snapshot as an agent would report it.
