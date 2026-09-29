@@ -19,6 +19,7 @@ import (
 
 type CloudBackend struct {
 	endpoint, key, queue string
+	auth, queueURL       string
 	client               *http.Client
 	heartbeat            time.Duration
 	reportGap            time.Duration
@@ -51,6 +52,8 @@ func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
 	c := *b.client
 	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	b.client = &c
+	b.auth = "Bearer " + b.key
+	b.queueURL = b.endpoint + "/v1/queues/" + url.PathEscape(b.queue) + "/"
 	return b, nil
 }
 
@@ -74,12 +77,12 @@ func (b *CloudBackend) MaintenanceManaged() bool { return true }
 func (b *CloudBackend) call(ctx context.Context, method string, args, out any) error {
 	ctx, cancel := context.WithTimeout(ctx, 35*time.Second)
 	defer cancel()
-	return b.request(ctx, http.MethodPost, "/v1/queues/"+url.PathEscape(b.queue)+"/"+method, args, out)
+	return b.request(ctx, http.MethodPost, b.queueURL+method, args, out)
 }
 
 // request sends args (no body when nil) to the data plane and decodes the
 // response envelope's result into out (unless nil).
-func (b *CloudBackend) request(ctx context.Context, verb, path string, args, out any) error {
+func (b *CloudBackend) request(ctx context.Context, verb, target string, args, out any) error {
 	var body io.Reader
 	if args != nil {
 		data, err := json.Marshal(args)
@@ -88,11 +91,11 @@ func (b *CloudBackend) request(ctx context.Context, verb, path string, args, out
 		}
 		body = bytes.NewReader(data)
 	}
-	req, err := http.NewRequestWithContext(ctx, verb, b.endpoint+path, body)
+	req, err := http.NewRequestWithContext(ctx, verb, target, body)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Authorization", "Bearer "+b.key)
+	req.Header.Set("Authorization", b.auth)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("RunnerQ-Storage-Version", protocol.Version)
 	res, err := b.client.Do(req)
@@ -133,7 +136,7 @@ func (b *CloudBackend) request(ctx context.Context, verb, path string, args, out
 func (b *CloudBackend) WaitForResult(ctx context.Context, id uuid.UUID) (*storage.ActivityResult, error) {
 	for {
 		var result *storage.ActivityResult
-		err := b.call(ctx, "WaitForResult", map[string]any{"activityID": id}, &result)
+		err := b.call(ctx, "WaitForResult", protocol.GetResultArgs{ActivityID: id}, &result) // GetResult's arguments
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}

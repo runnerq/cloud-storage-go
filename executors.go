@@ -80,7 +80,7 @@ func (b *CloudBackend) ExecutorStopped(id string) {
 func (b *CloudBackend) executorCall(ctx context.Context, method, id string, body any) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	return b.request(ctx, method, "/v1/executors/"+url.PathEscape(id), body, nil)
+	return b.request(ctx, method, b.endpoint+"/v1/executors/"+url.PathEscape(id), body, nil)
 }
 
 // reportOf is a snapshot as an agent would report it.
