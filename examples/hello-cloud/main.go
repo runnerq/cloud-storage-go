@@ -17,7 +17,7 @@ import (
 
 	"github.com/alob-mtc/runnerq-go"
 	"github.com/google/uuid"
-	backend "github.com/runnerq/runnerq-cloud-storage-go"
+	backend "github.com/runnerq/cloud-storage-go"
 )
 
 const activityType = "cloud_hello"

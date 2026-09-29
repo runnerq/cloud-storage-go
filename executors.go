@@ -13,7 +13,7 @@ import (
 
 	"github.com/alob-mtc/runnerq-go/executor"
 	"github.com/alob-mtc/runnerq-go/storage"
-	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
+	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
 // reporters holds the heartbeat of each engine running on the backend.
