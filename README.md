@@ -8,7 +8,7 @@ through the independent RunnerQ data plane.
 import (
     "os"
     "github.com/alob-mtc/runnerq-go"
-    backend "github.com/alob-mtc/runnerq-cloud-storage-go"
+    backend "github.com/runnerq/runnerq-cloud-storage-go"
 )
 
 cloud, err := backend.NewCloudBackend(
@@ -72,5 +72,5 @@ sibling data-plane dispatcher from the local storage interfaces. The wire contra
 is versioned: review compatibility before regenerating for SDK changes. Shared
 wire structures are in `protocol/`; the adapter imports no service internals.
 
-[Service setup](https://github.com/RunnerQ/runnerq-cloud/blob/main/dataplane/README.md) and
-[HTTP protocol](https://github.com/RunnerQ/runnerq-cloud/blob/main/dataplane/docs/protocol.md).
+[Service setup](https://github.com/runnerq/runnerq-cloud/blob/main/dataplane/README.md) and
+[HTTP protocol](https://github.com/runnerq/runnerq-cloud/blob/main/dataplane/docs/protocol.md).

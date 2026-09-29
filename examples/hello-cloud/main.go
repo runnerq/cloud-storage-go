@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	backend "github.com/alob-mtc/runnerq-cloud-storage-go"
+	backend "github.com/runnerq/runnerq-cloud-storage-go"
 	"github.com/alob-mtc/runnerq-go"
 	"github.com/google/uuid"
 )
