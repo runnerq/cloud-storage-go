@@ -1,6 +1,8 @@
-from pathlib import Path
-import re
 import os
+import re
+import subprocess
+from pathlib import Path
+
 root=Path(__file__).resolve().parents[3]
 # Override the sibling checkouts, e.g. to generate from a clean SDK worktree.
 sdk=Path(os.environ.get('RUNNERQ_GO_SDK',root/'runnerq-go-sdk'))
@@ -26,26 +28,24 @@ for interface in interfaces:
             if len(x)==1:pending.append(x[0]);continue
             param,typ=x
             params.extend((p,qualify(typ)) for p in pending+[param]);pending=[]
-        returns=returns.strip('()').split(', ')
-        methods[name]=(params,[qualify(t) for t in returns])
+        ret=[qualify(t) for t in returns.strip('()').split(', ')]
+        methods[name]=(params,ret,ret[0] if len(ret)==1 else '('+', '.join(ret)+')')
         if interface=='Reader': reader.add(name)
 imports='''import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage")\n'''
 wire=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage protocol\n',imports.replace('"context"; ','' )]
 client=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage backend\n',imports, 'import "github.com/runnerq/cloud-storage-go/protocol"\n']
 server=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage rpc\n', 'import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage"; "github.com/runnerq/cloud-storage-go/protocol")\n','type Backend interface { storage.Storage; storage.BatchQueueStorage; storage.AttemptLeaseStorage; storage.CheckpointStorage; storage.SpawnStorage; storage.DependencyStorage; storage.EncodedStorage; storage.ResultWaiter; reader }\n','func dispatch(ctx context.Context,b Backend,method string,body json.RawMessage)(any,error){ switch method {\n']
 reads=[]
-for name,(params,ret) in methods.items():
+for name,(params,ret,rettype) in methods.items():
     if name not in reader: continue
-    rettype=ret[0] if len(ret)==1 else '('+', '.join(ret)+')'
     reads.append(f"{name}(ctx context.Context{''.join(', '+p+' '+t for p,t in params)}) {rettype}\n")
 server.insert(2,'// reader is the read side the conformance suite checks through (storagetest.Reader).\ntype reader interface {\n'+''.join(reads)+'}\n')
-for name,(params,ret) in methods.items():
+for name,(params,ret,rettype) in methods.items():
     fields=';'.join(p[0].upper()+p[1:]+' '+t+' `json:"'+p+'"`' for p,t in params)
     wire.append(f'type {name}Args struct {{{fields}}}\n')
     args=','.join(p[0].upper()+p[1:]+':'+p for p,t in params)
     signature=', '.join(p+' '+t for p,t in params)
     signature=(','+signature) if signature else ''
-    rettype=ret[0] if len(ret)==1 else '('+', '.join(ret)+')'
     client.append(f'func(b *CloudBackend) {name}(ctx context.Context{signature}) {rettype} {{\n')
     if len(ret)==1:client.append(f'return b.call(ctx,"{name}",protocol.{name}Args{{{args}}},nil)\n}}\n')
     else:client.append(f'var out {ret[0]}; err:=b.call(ctx,"{name}",protocol.{name}Args{{{args}}},&out); return out,err\n}}\n')
@@ -71,6 +71,4 @@ server.append('default: return nil,&storage.StorageError{Kind:storage.ErrUnsuppo
 (root/'cloud-storage-sdk/go/operations.go').write_text(''.join(client))
 (cloud/'dataplane/internal/rpc/operations.go').write_text(''.join(server))
 print('Generated',len(methods),'operations')
-
-import subprocess
 subprocess.run(['gofmt','-w',str(root/'cloud-storage-sdk/go/protocol/operations.go'),str(root/'cloud-storage-sdk/go/operations.go'),str(cloud/'dataplane/internal/rpc/operations.go')],check=True)
