@@ -22,9 +22,9 @@ type reporters struct {
 	stop map[string]func()
 }
 
-// ExecutorStarted reports the engine to the data plane now and every
-// protocol.HeartbeatInterval until it stops, so the console shows it in
-// Fleet. The engine calls it (the backend is an executor.Observer).
+// ExecutorStarted reports the engine to the data plane now, every
+// protocol.HeartbeatInterval, and soon after it changes (at most once per
+// protocol.MinReportGap) until it stops, so the console shows it in Fleet. The engine calls it (the backend is an executor.Observer).
 // Reporting never affects the engine: failures are logged and retried at
 // the next beat.
 func (b *CloudBackend) ExecutorStarted(src executor.Source) {
@@ -40,18 +40,12 @@ func (b *CloudBackend) ExecutorStarted(src executor.Source) {
 
 	go func() {
 		defer close(done)
-		tick := time.NewTicker(b.heartbeat)
-		defer tick.Stop()
-		for {
+		every := func() time.Duration { return b.heartbeat }
+		executor.Report(ctx, src, every, b.reportGap, func() {
 			if err := b.executorCall(ctx, http.MethodPut, id, reportOf(src.Snapshot())); err != nil && ctx.Err() == nil {
 				slog.Warn("RunnerQ Cloud: executor report failed; retrying", "executor", id, "error", err)
 			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-tick.C:
-			}
-		}
+		})
 	}()
 }
 
