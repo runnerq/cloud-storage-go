@@ -1,11 +1,14 @@
-// Package protocol defines the v1 Go storage transport. It has no server imports.
+// Package protocol is the v1 storage wire format shared by the adapter and
+// the data plane. It has no server imports.
 package protocol
 
 import (
 	"encoding/json"
+
 	"github.com/alob-mtc/runnerq-go/storage"
 )
 
+// Version is the RunnerQ-Storage-Version header's value.
 const Version = "1"
 
 type Response struct {
@@ -29,6 +32,7 @@ var kinds = map[storage.StorageErrorKind]string{
 	storage.ErrUnsupported: "unsupported",
 }
 
+// Code is k's wire code ("internal" if unknown).
 func Code(k storage.StorageErrorKind) string {
 	if s, ok := kinds[k]; ok {
 		return s
@@ -36,6 +40,7 @@ func Code(k storage.StorageErrorKind) string {
 	return "internal"
 }
 
+// StorageError is e as a storage error; an unknown code is a configuration error.
 func (e *Error) StorageError() error {
 	for k, v := range kinds {
 		if v == e.Code {

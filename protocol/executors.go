@@ -2,12 +2,10 @@ package protocol
 
 import "time"
 
-// ExecutorReport is a worker's heartbeat to the data plane, so RunnerQ
-// Cloud's console can show a hosted app's workers (Fleet). It is what a
-// conductor agent says about its executor, in the same shapes: its hello's
-// sdk and executor, and its executor.report state (with the running list).
-// Sent with the store key to PUT /v1/executors/{id} every
-// HeartbeatInterval; DELETE /v1/executors/{id} says goodbye on a clean stop.
+// ExecutorReport is a worker's heartbeat (PUT /v1/executors/{id}, with the
+// store key) for the console's Fleet, in a conductor agent's shapes: its
+// hello's sdk and executor, and its executor.report state. DELETE
+// /v1/executors/{id} says goodbye on a clean stop.
 type ExecutorReport struct {
 	SDK      SDKInfo       `json:"sdk"`
 	Executor ExecutorInfo  `json:"executor"`
@@ -31,8 +29,6 @@ type ExecutorInfo struct {
 	Labels         map[string]string `json:"labels,omitempty"`
 }
 
-// ExecutorState is what the executor is doing, and has done since it
-// started.
 type ExecutorState struct {
 	ID                string            `json:"id"`
 	UptimeMS          int64             `json:"uptime_ms"`
@@ -63,10 +59,10 @@ type Counters struct {
 	ClaimsLost   uint64 `json:"claims_lost"`
 }
 
-// HeartbeatInterval is how often a worker reports. The data plane treats a
-// worker as gone after three missed reports.
+// HeartbeatInterval is how often a worker reports; three missed reports
+// and the data plane counts it gone.
 const HeartbeatInterval = 10 * time.Second
 
-// MinReportGap spaces the extra reports a worker sends soon after it
-// changes (an activity starting or finishing, or a drain beginning).
+// MinReportGap is the least time between the extra reports a worker sends
+// when it changes.
 const MinReportGap = 2 * time.Second
