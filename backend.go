@@ -11,14 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
 	"github.com/alob-mtc/runnerq-go/storage"
 	"github.com/google/uuid"
+	"github.com/runnerq/runnerq-cloud-storage-go/protocol"
 )
 
 type CloudBackend struct {
 	endpoint, key, queue string
 	client               *http.Client
+	heartbeat            time.Duration
+	reporters            reporters
 }
 type Option func(*CloudBackend)
 
@@ -31,7 +33,7 @@ func WithHTTPClient(client *http.Client) Option { return func(b *CloudBackend) {
 // NewCloudBackend creates a queue-scoped client. Endpoint is explicit until the
 // hosted service has a public address. Plain HTTP is allowed only on loopback.
 func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
-	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{}}
+	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{}, heartbeat: protocol.HeartbeatInterval}
 	for _, o := range options {
 		o(b)
 	}

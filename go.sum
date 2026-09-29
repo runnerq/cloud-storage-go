@@ -1,5 +1,5 @@
-github.com/alob-mtc/runnerq-go v0.5.2-0.20260929084527-66d65da5caf2 h1:vBzuMrt7BTKZi1sRp7JqV4+NfPDMXeGBSA7p+prpgfU=
-github.com/alob-mtc/runnerq-go v0.5.2-0.20260929084527-66d65da5caf2/go.mod h1:ysdVeRiPXiEIdPI6kXxAmuwBHMW7mQJamIRUD4Cb3Mk=
+github.com/alob-mtc/runnerq-go v0.5.2-0.20260929145303-66d10ce69d12 h1:s4VRuv41ADBmMUxFGap8IQQsYI4B+FyBHqWCEHZI6po=
+github.com/alob-mtc/runnerq-go v0.5.2-0.20260929145303-66d10ce69d12/go.mod h1:ysdVeRiPXiEIdPI6kXxAmuwBHMW7mQJamIRUD4Cb3Mk=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
