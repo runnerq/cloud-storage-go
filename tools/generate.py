@@ -9,7 +9,7 @@ cloud=Path(os.environ.get('RUNNERQ_CLOUD',root/'runnerq-cloud'))
 # reads through it, so the adapter serves those reads too.
 src='\n'.join((sdk/'storage'/f).read_text() for f in ['storage.go','recovery.go','storagetest/storagetest.go']).replace('storage.','')
 types=set(re.findall(r'^type (\w+)',src,re.M))
-interfaces=['ResultStorage','QueueStorage','Reader','BatchQueueStorage','AttemptLeaseStorage','CheckpointStorage','SpawnStorage','DependencyStorage']
+interfaces=['ResultStorage','QueueStorage','Reader','BatchQueueStorage','AttemptLeaseStorage','CheckpointStorage','SpawnStorage','DependencyStorage','EncodedStorage']
 def qualify(s):
     return re.sub(r'\b[A-Za-z_]\w*\b',lambda m:'storage.'+m[0] if m[0] in types and m[0] not in ('Reader','Harness','suite') else m[0],s)
 methods={}
@@ -32,7 +32,7 @@ for interface in interfaces:
 imports='''import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage")\n'''
 wire=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage protocol\n',imports.replace('"context"; ','' )]
 client=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage backend\n',imports, 'import "github.com/runnerq/cloud-storage-go/protocol"\n']
-server=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage rpc\n', 'import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage"; "github.com/runnerq/cloud-storage-go/protocol")\n','type Backend interface { storage.Storage; storage.BatchQueueStorage; storage.AttemptLeaseStorage; storage.CheckpointStorage; storage.SpawnStorage; storage.DependencyStorage; storage.ResultWaiter; reader }\n','func dispatch(ctx context.Context,b Backend,method string,body json.RawMessage)(any,error){ switch method {\n']
+server=['// Code generated from the RunnerQ storage contract; DO NOT EDIT.\npackage rpc\n', 'import ("context"; "encoding/json"; "time"; "github.com/google/uuid"; "github.com/alob-mtc/runnerq-go/storage"; "github.com/runnerq/cloud-storage-go/protocol")\n','type Backend interface { storage.Storage; storage.BatchQueueStorage; storage.AttemptLeaseStorage; storage.CheckpointStorage; storage.SpawnStorage; storage.DependencyStorage; storage.EncodedStorage; storage.ResultWaiter; reader }\n','func dispatch(ctx context.Context,b Backend,method string,body json.RawMessage)(any,error){ switch method {\n']
 reads=[]
 for name,(params,ret) in methods.items():
     if name not in reader: continue
@@ -60,8 +60,11 @@ for name,(params,ret) in methods.items():
         if p=='offset':server.append(f'if {f}<0{{return nil,invalid("offset must be non-negative")}}\n')
         if p in ('workerID','workerIDPrefix'):server.append(f'if len({f})==0 || len({f})>512{{return nil,invalid("worker token is required and must be <=512 bytes")}}\n')
         if t=='storage.RetentionPolicy':server.append(f'if {f}.Completed<0 || {f}.Failed<0{{return nil,invalid("negative retention")}}\n')
+        if p=='serialization':server.append(f'if len({f})>64{{return nil,invalid("serialization must be <=64 bytes")}}\n')
+        if p=='serializations':server.append(f'if len({f})>8{{return nil,invalid("at most 8 serializations")}}\nfor _,s:=range {f}{{if len(s)>64{{return nil,invalid("serialization must be <=64 bytes")}}}}\n')
+        if t=='storage.ActivityResult':server.append(f'if len({f}.Serialization)>64{{return nil,invalid("serialization must be <=64 bytes")}}\n')
     call=f'b.{name}(ctx'+''.join(',a.'+p[0].upper()+p[1:] for p,t in params)+')'
-    if name in ('Dequeue','DequeueBatch'):call=call.replace('a.Timeout','min(a.Timeout,25*time.Second)')
+    if name in ('Dequeue','DequeueBatch','DequeueBatchEncoded'):call=call.replace('a.Timeout','min(a.Timeout,25*time.Second)')
     server.append(('return nil,' if len(ret)==1 else 'return ')+call+'\n')
 server.append('default: return nil,&storage.StorageError{Kind:storage.ErrUnsupported,Message:"unsupported storage operation"}\n}}\n')
 (root/'cloud-storage-sdk/go/protocol/operations.go').write_text(''.join(wire))
