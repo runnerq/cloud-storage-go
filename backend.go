@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/alob-mtc/runnerq-go/storage"
@@ -35,7 +36,7 @@ func WithHTTPClient(client *http.Client) Option { return func(b *CloudBackend) {
 // "default") in the store apiKey belongs to; a store key reaches every queue in
 // its store. Endpoint is explicit until the hosted service has a public address. Plain HTTP is allowed only on loopback.
 func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
-	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{}, heartbeat: protocol.HeartbeatInterval, reportGap: protocol.MinReportGap}
+	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{Transport: defaultTransport()}, heartbeat: protocol.HeartbeatInterval, reportGap: protocol.MinReportGap}
 	for _, o := range options {
 		o(b)
 	}
@@ -52,6 +53,19 @@ func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
 	b.client = &c
 	return b, nil
 }
+
+// defaultTransport is http.DefaultTransport keeping up to MaxIdleConns idle
+// connections to the data plane instead of two, so a busy worker's
+// concurrent HTTP/1.1 calls reuse connections rather than redialing.
+var defaultTransport = sync.OnceValue(func() http.RoundTripper {
+	t, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return http.DefaultTransport
+	}
+	t = t.Clone()
+	t.MaxIdleConnsPerHost = t.MaxIdleConns
+	return t
+})
 
 func (b *CloudBackend) SchedulesNatively() bool  { return true }
 func (b *CloudBackend) MaintenanceManaged() bool { return true }
