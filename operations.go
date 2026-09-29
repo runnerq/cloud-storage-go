@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"time"
 )
-import "github.com/alob-mtc/cloud-store-go-sdk/protocol"
+import "github.com/alob-mtc/runnerq-cloud-storage-go/protocol"
 
 func (b *CloudBackend) GetResult(ctx context.Context, activityID uuid.UUID) (*storage.ActivityResult, error) {
 	var out *storage.ActivityResult

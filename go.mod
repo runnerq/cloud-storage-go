@@ -1,4 +1,4 @@
-module github.com/alob-mtc/cloud-store-go-sdk
+module github.com/alob-mtc/runnerq-cloud-storage-go
 
 go 1.27
 

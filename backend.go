@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alob-mtc/cloud-store-go-sdk/protocol"
+	"github.com/alob-mtc/runnerq-cloud-storage-go/protocol"
 	"github.com/alob-mtc/runnerq-go/storage"
 	"github.com/google/uuid"
 )
