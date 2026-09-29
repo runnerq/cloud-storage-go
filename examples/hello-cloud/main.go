@@ -1,5 +1,5 @@
 // Hello Cloud runs a checkpointed workflow using RunnerQ's cloud storage adapter.
-// See README.md in this directory for service setup and queue provisioning.
+// See README.md in this directory for how to run it.
 package main
 
 import (
@@ -79,7 +79,7 @@ func run(ctx context.Context, name, requestID string) error {
 	}
 	apiKey := os.Getenv("RUNNERQ_STORE_KEY")
 	if apiKey == "" {
-		return errors.New("set RUNNERQ_STORE_KEY to a provisioned queue key; see examples/hello-cloud/README.md")
+		return errors.New("set RUNNERQ_STORE_KEY to a store key; see examples/hello-cloud/README.md")
 	}
 	endpoint := envOr("RUNNERQ_DATA_ENDPOINT", "http://localhost:8081")
 	queue := envOr("RUNNERQ_DATA_QUEUE", "hello_cloud")

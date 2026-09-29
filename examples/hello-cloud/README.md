@@ -5,57 +5,21 @@ a greeting workflow, runs two durable checkpoints, prints the result, and drains
 the worker before exiting. The handler runs in this process; credentials,
 activities, checkpoints and results are stored by the data plane.
 
-## 1. Start the local data plane
+## Run it
 
-This checkout currently requires Go 1.27 and the sibling `runnerq-go-sdk` and
-`runnerq-cloud` directories. Local PostgreSQL setup also requires Docker Compose.
+You need a running data plane and a store key. For a local one, follow the
+development setup in
+[the data plane's README](https://github.com/runnerq/runnerq-cloud/blob/main/dataplane/README.md):
+it starts `storaged` on `http://localhost:8081`, provisions a store and issues
+its key. With RunnerQ Cloud, the console creates the store and shows its key.
+The key reaches every queue in its store: `hello_cloud` appears the first time
+the worker uses it. Use HTTPS outside loopback.
 
-From the `runnerq-org` workspace in terminal one:
-
-```sh
-cd runnerq-cloud/dataplane
-docker compose -f compose.dev.yaml up -d --wait
-export RUNNERQ_DATA_DSN='postgres://runnerq_data:local-data-only@localhost:55433/runnerq_data?sslmode=disable'
-export RUNNERQ_DATA_ADMIN_TOKEN='local-admin-change-me'
-go run ./cmd/storaged migrate
-go run ./cmd/storaged serve -addr :8081
-```
-
-For an existing data plane, use its endpoint and a store key and skip local
-setup. Use HTTPS outside loopback.
-
-## 2. Provision a store and a key
-
-In terminal two, provision the app's store with the data-plane admin credential,
-then issue it a key:
+From this module's root (`cloud-storage-sdk/go`):
 
 ```sh
-curl --fail-with-body -sS http://localhost:8081/v1/admin/stores \
-  -H 'Authorization: Bearer local-admin-change-me' \
-  -H 'Content-Type: application/json' \
-  -d '{"app_id":"11111111-1111-4111-8111-111111111111","retention_completed_seconds":86400,"retention_failed_seconds":604800}'
-
-curl --fail-with-body -sS http://localhost:8081/v1/admin/stores/<result.id>/keys \
-  -H 'Authorization: Bearer local-admin-change-me' \
-  -H 'Content-Type: application/json' -d '{"name":"hello-cloud"}'
-```
-
-Copy `result.secret` from the second response into `RUNNERQ_STORE_KEY` below.
-The example app UUID is a local placeholder; with RunnerQ Cloud, the console
-creates the store and shows its key instead. The worker only needs the store key,
-which works for any queue in the store: `hello_cloud` appears the first time the
-worker uses it. The admin credential and database DSN belong to service setup,
-not the worker.
-
-## 3. Run the example
-
-From the `runnerq-org` workspace in terminal two:
-
-```sh
-cd cloud-storage-sdk/go
-export RUNNERQ_DATA_ENDPOINT='http://localhost:8081'
-export RUNNERQ_DATA_QUEUE='hello_cloud'
-export RUNNERQ_STORE_KEY='paste-result.secret-here'
+export RUNNERQ_STORE_KEY='your-store-key'
+export RUNNERQ_DATA_ENDPOINT='http://localhost:8081'   # the default
 
 go run ./examples/hello-cloud -name Ada -request-id hello-001
 ```

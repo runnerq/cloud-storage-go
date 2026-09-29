@@ -31,8 +31,9 @@ func WithEndpoint(endpoint string) Option {
 func WithQueue(queue string) Option             { return func(b *CloudBackend) { b.queue = queue } }
 func WithHTTPClient(client *http.Client) Option { return func(b *CloudBackend) { b.client = client } }
 
-// NewCloudBackend creates a queue-scoped client. Endpoint is explicit until the
-// hosted service has a public address. Plain HTTP is allowed only on loopback.
+// NewCloudBackend creates a client for one queue (WithQueue, default
+// "default") in the store apiKey belongs to; a store key reaches every queue in
+// its store. Endpoint is explicit until the hosted service has a public address. Plain HTTP is allowed only on loopback.
 func NewCloudBackend(apiKey string, options ...Option) (*CloudBackend, error) {
 	b := &CloudBackend{key: apiKey, queue: "default", client: &http.Client{}, heartbeat: protocol.HeartbeatInterval, reportGap: protocol.MinReportGap}
 	for _, o := range options {
