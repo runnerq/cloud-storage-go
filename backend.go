@@ -17,7 +17,6 @@ import (
 	"github.com/runnerq/cloud-storage-go/protocol"
 )
 
-// CloudBackend is one queue's storage in a RunnerQ Cloud store.
 type CloudBackend struct {
 	endpoint, queue, auth, queueURL string
 	client                          *http.Client
@@ -26,10 +25,8 @@ type CloudBackend struct {
 	reporters                       map[string]func() // executor id -> stop
 }
 
-// Option configures a CloudBackend.
 type Option func(*CloudBackend)
 
-// WithEndpoint sets the data plane's address (required).
 func WithEndpoint(endpoint string) Option {
 	return func(b *CloudBackend) { b.endpoint = strings.TrimRight(endpoint, "/") }
 }
@@ -76,10 +73,8 @@ var defaultTransport = sync.OnceValue(func() http.RoundTripper {
 	return t
 })
 
-// SchedulesNatively is true: dequeue handles scheduled activities.
 func (b *CloudBackend) SchedulesNatively() bool { return true }
 
-// MaintenanceManaged is true: the data plane runs lease recovery and retention.
 func (b *CloudBackend) MaintenanceManaged() bool { return true }
 
 // call runs a storage operation on the queue. storaged bounds a request at

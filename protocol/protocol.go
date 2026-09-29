@@ -11,13 +11,11 @@ import (
 // Version is the RunnerQ-Storage-Version header's value.
 const Version = "1"
 
-// Response is every storage reply: a result or an error.
 type Response struct {
 	Result json.RawMessage `json:"result,omitempty"`
 	Error  *Error          `json:"error,omitempty"`
 }
 
-// Error is a storage error on the wire.
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

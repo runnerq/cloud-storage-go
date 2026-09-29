@@ -12,7 +12,6 @@ type ExecutorReport struct {
 	State    ExecutorState `json:"state"`
 }
 
-// SDKInfo names the worker's RunnerQ SDK.
 type SDKInfo struct {
 	Name     string `json:"name"`
 	Version  string `json:"version"`
@@ -30,7 +29,6 @@ type ExecutorInfo struct {
 	Labels         map[string]string `json:"labels,omitempty"`
 }
 
-// ExecutorState is what the executor is doing, and has done since it started.
 type ExecutorState struct {
 	ID                string            `json:"id"`
 	UptimeMS          int64             `json:"uptime_ms"`
@@ -43,7 +41,6 @@ type ExecutorState struct {
 	Counters          *Counters         `json:"counters,omitempty"`
 }
 
-// RunningActivity is an activity the executor is running.
 type RunningActivity struct {
 	ActivityID string `json:"activity_id"`
 	Type       string `json:"type"`
