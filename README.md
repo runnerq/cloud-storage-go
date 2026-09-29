@@ -32,6 +32,14 @@ A store key belongs to one hosted store and reaches any queue in it; a queue
 appears in the store the first time a worker uses it. Keys and retention are
 managed in the RunnerQ Cloud console (or the data-plane admin API).
 
+Each engine built on the backend reports itself to the data plane every 10
+seconds (identity, queue, activity types, capacity, activities in flight) and
+says goodbye when it stops, so RunnerQ Cloud's Fleet shows a hosted app's
+workers with no agent. `WithLabels(map[string]string{...})` tags them
+(region, deploy version). This uses the SDK's
+`storage.ExecutorReportingStorage`; reporting failures are logged and never
+affect the worker.
+
 Implemented capabilities: `storage.Storage`, `BatchQueueStorage`, `ResultWaiter`,
 `AttemptLeaseStorage`, `CheckpointStorage`, `SpawnStorage`, `DependencyStorage`
 and `ManagedMaintenanceStorage`. Queue scheduling, reaping and retention are
