@@ -76,7 +76,7 @@ python3 tools/generate.py
 
 `RUNNERQ_GO_SDK` and `RUNNERQ_CLOUD` point the generator at other checkouts
 (default: the siblings `../../runnerq-go-sdk` and `../../runnerq-cloud`).
-The generator refreshes the 29 typed operation bindings in this module and the
+The generator refreshes the 32 typed operation bindings in this module and the
 sibling data-plane dispatcher from the local storage interfaces. The wire contract
 is versioned: review compatibility before regenerating for SDK changes. Shared
 wire structures are in `protocol/`; the adapter imports no service internals.
