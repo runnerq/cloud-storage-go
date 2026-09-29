@@ -135,3 +135,14 @@ func (b *CloudBackend) RegisterDependency(ctx context.Context, waiterID uuid.UUI
 func (b *CloudBackend) YieldForResult(ctx context.Context, waiterID uuid.UUID, resultID uuid.UUID, producerID *uuid.UUID, wakeAt time.Time, workerID string, kind string, step string) error {
 	return b.call(ctx, "YieldForResult", protocol.YieldForResultArgs{WaiterID: waiterID, ResultID: resultID, ProducerID: producerID, WakeAt: wakeAt, WorkerID: workerID, Kind: kind, Step: step}, nil)
 }
+func (b *CloudBackend) DequeueBatchEncoded(ctx context.Context, workerIDPrefix string, limit int, timeout time.Duration, activityTypes []string, serializations []string) ([]storage.DequeuedActivity, error) {
+	var out []storage.DequeuedActivity
+	err := b.call(ctx, "DequeueBatchEncoded", protocol.DequeueBatchEncodedArgs{WorkerIDPrefix: workerIDPrefix, Limit: limit, Timeout: timeout, ActivityTypes: activityTypes, Serializations: serializations}, &out)
+	return out, err
+}
+func (b *CloudBackend) AckSuccessEncoded(ctx context.Context, activityID uuid.UUID, result json.RawMessage, serialization string, workerID string) error {
+	return b.call(ctx, "AckSuccessEncoded", protocol.AckSuccessEncodedArgs{ActivityID: activityID, Result: result, Serialization: serialization, WorkerID: workerID}, nil)
+}
+func (b *CloudBackend) SignalActivityEncoded(ctx context.Context, activityID uuid.UUID, signalID uuid.UUID, name string, payload json.RawMessage, serialization string) error {
+	return b.call(ctx, "SignalActivityEncoded", protocol.SignalActivityEncodedArgs{ActivityID: activityID, SignalID: signalID, Name: name, Payload: payload, Serialization: serialization}, nil)
+}
