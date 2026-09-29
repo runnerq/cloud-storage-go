@@ -103,8 +103,13 @@ func (b *CloudBackend) request(ctx context.Context, verb, path string, args, out
 		return storage.NewUnavailableError("storage transport failed; outcome may be unknown")
 	}
 	defer res.Body.Close()
+	// Reading to EOF lets the connection be reused; Unmarshal is also cheaper than a Decoder.
+	data, err := io.ReadAll(io.LimitReader(res.Body, 16<<20))
 	var response protocol.Response
-	if err := json.NewDecoder(io.LimitReader(res.Body, 16<<20)).Decode(&response); err != nil {
+	if err == nil {
+		err = json.Unmarshal(data, &response)
+	}
+	if err != nil {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
