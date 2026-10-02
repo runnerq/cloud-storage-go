@@ -79,9 +79,13 @@ func TestExecutorReports(t *testing.T) {
 		ex.MaxConcurrency != 4 || ex.Labels["region"] != "eu" || ex.StartedAt != "2026-09-29T12:00:00.000Z" {
 		t.Fatalf("first report: %+v", first)
 	}
-	if st.ID != "exec-1" || st.UptimeMS != 120_000 || st.InFlight != 1 || len(st.Running) != 1 ||
-		st.Running[0].ActivityID != running.ID.String() || st.Running[0].Attempt != 2 || st.Running[0].StartedAt != "2026-09-29T12:01:00.000Z" ||
-		st.ClaimLagMS != 1500 || st.HeartbeatFailures != 2 || st.Counters == nil || st.Counters.Claimed != 5 || st.Counters.DeadLettered != 1 {
+	if st.Running == nil || len(*st.Running) != 1 {
+		t.Fatalf("first state's running: %+v", st.Running)
+	}
+	run := (*st.Running)[0]
+	if st.ID != "exec-1" || st.UptimeMS != 120_000 || st.InFlight != 1 ||
+		run.ActivityID != running.ID.String() || run.Attempt != 2 || run.StartedAt != "2026-09-29T12:01:00.000Z" ||
+		st.ClaimLagMS != 1500 || st.HeartbeatFailures != 2 || st.Counters.Claimed != 5 || st.Counters.DeadLettered != 1 {
 		t.Fatalf("first state: %+v", st)
 	}
 	last := got[len(got)-1]

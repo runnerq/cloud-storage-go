@@ -55,11 +55,15 @@ func TestSpecExamplesRoundTrip(t *testing.T) {
 }
 
 func TestSpecExecutorReportRoundTrip(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("spec", "protocol", "storage", "executor_report.example.json"))
+	raw, err := os.ReadFile(filepath.Join("spec", "protocol", "conductor", "executor_report.example.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	roundTrip(t, "executor report", bytes.TrimSpace(raw), new(protocol.ExecutorReport))
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, raw); err != nil {
+		t.Fatal(err)
+	}
+	roundTrip(t, "executor report", compact.Bytes(), new(protocol.ExecutorReport))
 }
 
 func roundTrip(t *testing.T, what string, want json.RawMessage, into any) {

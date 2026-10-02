@@ -78,19 +78,21 @@ func reportOf(snap executor.Snapshot) protocol.ExecutorReport {
 		},
 		State: protocol.ExecutorState{
 			ID: info.ID, UptimeMS: snap.At.Sub(info.StartedAt).Milliseconds(), MaxConcurrency: info.MaxConcurrency,
-			InFlight: len(st.Running), ClaimLagMS: c.LastClaimLag.Milliseconds(), HeartbeatFailures: c.HeartbeatFailures,
-			Draining: st.Draining, Running: make([]protocol.RunningActivity, len(st.Running)),
-			Counters: &protocol.Counters{
-				Claimed: c.Claimed, Succeeded: c.Succeeded, Retried: c.Retried, Failed: c.Failed,
-				TimedOut: c.TimedOut, DeadLettered: c.DeadLettered, ClaimsLost: c.ClaimsLost,
+			InFlight: len(st.Running), ClaimLagMS: c.LastClaimLag.Milliseconds(), HeartbeatFailures: int64(c.HeartbeatFailures),
+			Draining: st.Draining,
+			Counters: protocol.ExecutorCounters{
+				Claimed: int64(c.Claimed), Succeeded: int64(c.Succeeded), Retried: int64(c.Retried), Failed: int64(c.Failed),
+				TimedOut: int64(c.TimedOut), DeadLettered: int64(c.DeadLettered), ClaimsLost: int64(c.ClaimsLost),
 			},
 		},
 	}
+	running := make([]protocol.RunningActivity, len(st.Running))
 	for i, a := range st.Running {
-		r.State.Running[i] = protocol.RunningActivity{
+		running[i] = protocol.RunningActivity{
 			ActivityID: a.ID.String(), Type: a.Type, Attempt: a.Attempt, StartedAt: timestamp(a.StartedAt),
 		}
 	}
+	r.State.Running = &running
 	return r
 }
 
