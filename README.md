@@ -77,8 +77,9 @@ go generate ./...             # after bumping spec: regenerate the protocol
 
 The storage protocol is defined in [runnerq-spec](https://github.com/runnerq/runnerq-spec/tree/main/protocol/storage)
 (`spec/protocol/storage`). `go generate` writes the 32 typed operations
-(`operations.go`), their wire types (`protocol/operations.go`) and the worker
-report (`protocol/executor_report.go`) from it; the data plane generates its
+(`operations.go`) and their wire types (`protocol/operations.go`) from it, and
+the worker report (`protocol/executor_report.go`) from the conductor protocol's
+`ExecutorReport`; the data plane generates its
 dispatcher from the same schema. The wire contract is versioned: review
 compatibility before bumping the spec. Shared wire structures are in
 `protocol/`; the adapter imports no service internals.
