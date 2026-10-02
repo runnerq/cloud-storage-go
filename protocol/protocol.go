@@ -4,12 +4,10 @@ package protocol
 
 import (
 	"encoding/json"
+	"slices"
 
 	"github.com/alob-mtc/runnerq-go/storage"
 )
-
-// Version is the RunnerQ-Storage-Version header's value.
-const Version = "1"
 
 type Response struct {
 	Result json.RawMessage `json:"result,omitempty"`
@@ -22,30 +20,18 @@ type Error struct {
 	Field   string `json:"field,omitempty"`
 }
 
-var kinds = map[storage.StorageErrorKind]string{
-	storage.ErrUnavailable: "unavailable", storage.ErrConflict: "conflict",
-	storage.ErrNotFound: "not_found", storage.ErrInternal: "internal",
-	storage.ErrSerialization: "serialization", storage.ErrConfiguration: "configuration",
-	storage.ErrTimeout: "timeout", storage.ErrDuplicateActivity: "duplicate_activity",
-	storage.ErrIdempotencyConflict: "idempotency_conflict", storage.ErrClaimLost: "claim_lost",
-	storage.ErrCheckpointConflict: "checkpoint_conflict", storage.ErrInvalidArgument: "invalid_argument",
-	storage.ErrUnsupported: "unsupported",
-}
-
 // Code is k's wire code ("internal" if unknown).
 func Code(k storage.StorageErrorKind) string {
-	if s, ok := kinds[k]; ok {
-		return s
+	if k >= 0 && int(k) < len(ErrorCodes) {
+		return ErrorCodes[k]
 	}
 	return "internal"
 }
 
 // StorageError is e as a storage error; an unknown code is a configuration error.
 func (e *Error) StorageError() error {
-	for k, v := range kinds {
-		if v == e.Code {
-			return &storage.StorageError{Kind: k, Message: e.Message, Field: e.Field}
-		}
+	if k := slices.Index(ErrorCodes[:], e.Code); k >= 0 {
+		return &storage.StorageError{Kind: storage.StorageErrorKind(k), Message: e.Message, Field: e.Field}
 	}
 	return storage.NewConfigurationError(e.Message)
 }

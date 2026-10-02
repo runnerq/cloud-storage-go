@@ -70,16 +70,18 @@ a published version of this module. Before publishing, release compatible
 RunnerQ and adapter versions.
 
 ```sh
+git submodule update --init   # runnerq-spec, at spec/
 go test -race ./...
-python3 tools/generate.py
+go generate ./...             # after bumping spec: regenerate the protocol
 ```
 
-`RUNNERQ_GO_SDK` and `RUNNERQ_CLOUD` point the generator at other checkouts
-(default: the siblings `../../runnerq-go-sdk` and `../../runnerq-cloud`).
-The generator refreshes the 32 typed operation bindings in this module and the
-sibling data-plane dispatcher from the local storage interfaces. The wire contract
-is versioned: review compatibility before regenerating for SDK changes. Shared
-wire structures are in `protocol/`; the adapter imports no service internals.
+The storage protocol is defined in [runnerq-spec](https://github.com/runnerq/runnerq-spec/tree/main/protocol/storage)
+(`spec/protocol/storage`). `go generate` writes the 32 typed operations
+(`operations.go`), their wire types (`protocol/operations.go`) and the worker
+report (`protocol/executor_report.go`) from it; the data plane generates its
+dispatcher from the same schema. The wire contract is versioned: review
+compatibility before bumping the spec. Shared wire structures are in
+`protocol/`; the adapter imports no service internals.
 
 [Service setup](https://github.com/runnerq/runnerq-cloud/blob/main/dataplane/README.md) and
-[HTTP protocol](https://github.com/runnerq/runnerq-cloud/blob/main/dataplane/docs/protocol.md).
+[storage protocol](https://github.com/runnerq/runnerq-spec/blob/main/protocol/storage/README.md).

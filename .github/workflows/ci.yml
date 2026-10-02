@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      # The protocol code is generated from the pinned runnerq-spec submodule.
+      - name: Generated code is current
+        run: go generate ./... && git diff --exit-code
+      - name: gofmt
+        run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
