@@ -61,13 +61,6 @@ func (b *CloudBackend) Yield(ctx context.Context, activityID uuid.UUID, wakeAt t
 	return b.call(ctx, "Yield", protocol.YieldArgs{ActivityID: activityID, WakeAt: wakeAt, WorkerID: workerID, Kind: kind, Step: step}, nil)
 }
 
-// ExtendLease calls the data plane's ExtendLease.
-func (b *CloudBackend) ExtendLease(ctx context.Context, activityID uuid.UUID, extendBy time.Duration) (bool, error) {
-	var out bool
-	err := b.call(ctx, "ExtendLease", protocol.ExtendLeaseArgs{ActivityID: activityID, ExtendBy: extendBy}, &out)
-	return out, err
-}
-
 // StoreResult calls the data plane's StoreResult.
 func (b *CloudBackend) StoreResult(ctx context.Context, activityID uuid.UUID, ownerActivityID uuid.UUID, result storage.ActivityResult, step string) error {
 	return b.call(ctx, "StoreResult", protocol.StoreResultArgs{ActivityID: activityID, OwnerActivityID: ownerActivityID, Result: result, Step: step}, nil)

@@ -60,12 +60,6 @@ type YieldArgs struct {
 	Step       string    `json:"step"`
 }
 
-// ExtendLeaseArgs are ExtendLease's arguments.
-type ExtendLeaseArgs struct {
-	ActivityID uuid.UUID     `json:"activityID"`
-	ExtendBy   time.Duration `json:"extendBy"`
-}
-
 // StoreResultArgs are StoreResult's arguments.
 type StoreResultArgs struct {
 	ActivityID      uuid.UUID              `json:"activityID"`
@@ -245,8 +239,6 @@ func NewArgs(operation string) any {
 		return new(RequeueExpiredArgs)
 	case "Yield":
 		return new(YieldArgs)
-	case "ExtendLease":
-		return new(ExtendLeaseArgs)
 	case "StoreResult":
 		return new(StoreResultArgs)
 	case "WakeWaiting":
