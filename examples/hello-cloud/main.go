@@ -94,6 +94,7 @@ func run(ctx context.Context, name, requestID string) error {
 	if err != nil {
 		return err
 	}
+	engine.Observe(cloud) // the store's console shows this worker
 	engine.RegisterActivityWithName(activityType, &HelloWorkflow{})
 	if requestID == "" {
 		requestID = uuid.NewString()

@@ -78,7 +78,7 @@ var defaultTransport = sync.OnceValue(func() http.RoundTripper {
 
 func (b *CloudBackend) SchedulesNatively() bool { return true }
 
-func (b *CloudBackend) MaintenanceManaged() bool { return true }
+func (b *CloudBackend) MaintainsItself() bool { return true }
 
 // call runs a storage operation on the queue. storaged bounds a request at
 // 30s and a long poll at 25s; the extra 5s is for the network.
@@ -163,5 +163,5 @@ var (
 	_ storage.SpawnStorage              = (*CloudBackend)(nil)
 	_ storage.DependencyStorage         = (*CloudBackend)(nil)
 	_ storage.ResultWaiter              = (*CloudBackend)(nil)
-	_ storage.ManagedMaintenanceStorage = (*CloudBackend)(nil)
+	_ storage.SelfMaintainingStorage = (*CloudBackend)(nil)
 )
