@@ -7,7 +7,7 @@ through the independent RunnerQ data plane.
 ```go
 import (
     "os"
-    "github.com/alob-mtc/runnerq-go"
+    "github.com/runnerq/runnerq-go"
     backend "github.com/runnerq/cloud-storage-go"
 )
 

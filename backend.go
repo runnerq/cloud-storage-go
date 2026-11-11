@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alob-mtc/runnerq-go/storage"
 	"github.com/google/uuid"
 	"github.com/runnerq/cloud-storage-go/protocol"
+	"github.com/runnerq/runnerq-go/storage"
 )
 
 // CloudBackend is RunnerQ storage for one queue in a RunnerQ Cloud store.
@@ -156,12 +156,12 @@ func (b *CloudBackend) WaitForResult(ctx context.Context, id uuid.UUID) (*storag
 }
 
 var (
-	_ storage.Storage                   = (*CloudBackend)(nil)
-	_ storage.BatchQueueStorage         = (*CloudBackend)(nil)
-	_ storage.AttemptLeaseStorage       = (*CloudBackend)(nil)
-	_ storage.CheckpointStorage         = (*CloudBackend)(nil)
-	_ storage.SpawnStorage              = (*CloudBackend)(nil)
-	_ storage.DependencyStorage         = (*CloudBackend)(nil)
-	_ storage.ResultWaiter              = (*CloudBackend)(nil)
+	_ storage.Storage                = (*CloudBackend)(nil)
+	_ storage.BatchQueueStorage      = (*CloudBackend)(nil)
+	_ storage.AttemptLeaseStorage    = (*CloudBackend)(nil)
+	_ storage.CheckpointStorage      = (*CloudBackend)(nil)
+	_ storage.SpawnStorage           = (*CloudBackend)(nil)
+	_ storage.DependencyStorage      = (*CloudBackend)(nil)
+	_ storage.ResultWaiter           = (*CloudBackend)(nil)
 	_ storage.SelfMaintainingStorage = (*CloudBackend)(nil)
 )
