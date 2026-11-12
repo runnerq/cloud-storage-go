@@ -23,6 +23,10 @@ engine, err := runnerq.Builder().
     QueueName("payments").
     Backend(cloud).
     Build()
+if err != nil {
+    return err
+}
+engine.Observe(cloud) // report the worker to the data plane
 ```
 
 The endpoint is required until there is a public hosted default. HTTP is allowed
@@ -38,12 +42,12 @@ finishing, or a drain beginning), and says goodbye when it stops, so RunnerQ Clo
 hosted app's workers with no agent. The report is the engine's snapshot
 (identity, labels from `WorkerConfig.Labels`, activities in flight, outcome
 counters, claim lag), in the same shape a conductor agent reports. The
-backend is an `executor.Observer`, which the engine attaches on its own;
-reporting failures are logged and never affect the worker.
+backend is an `executor.Observer`: attach it with `engine.Observe(cloud)`
+before `Start`. Reporting failures are logged and never affect the worker.
 
 Implemented capabilities: `storage.Storage`, `BatchQueueStorage`, `ResultWaiter`,
 `AttemptLeaseStorage`, `CheckpointStorage`, `SpawnStorage`, `DependencyStorage`
-and `ManagedMaintenanceStorage`. Queue scheduling, reaping and retention are
+and `SelfMaintainingStorage`. Queue scheduling, reaping and retention are
 service-owned. Configure retention through the service, not the worker builder.
 General `QueryStorage` and `CommandStorage` are not advertised in this version.
 
