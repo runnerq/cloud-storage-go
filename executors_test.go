@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alob-mtc/runnerq-go/executor"
 	"github.com/google/uuid"
 	"github.com/runnerq/cloud-storage-go/protocol"
+	"github.com/runnerq/runnerq-go/executor"
 )
 
 func TestExecutorReports(t *testing.T) {

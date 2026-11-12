@@ -15,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/alob-mtc/runnerq-go"
 	"github.com/google/uuid"
 	backend "github.com/runnerq/cloud-storage-go"
+	"github.com/runnerq/runnerq-go"
 )
 
 const activityType = "cloud_hello"

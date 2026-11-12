@@ -1,5 +1,3 @@
-github.com/alob-mtc/runnerq-go v0.5.2-0.20261006173535-3ec6fe2e13fa h1:ngBQeHgA8MrWPDInbsbv0bZ5jIfgrQyENcnVarALOGE=
-github.com/alob-mtc/runnerq-go v0.5.2-0.20261006173535-3ec6fe2e13fa/go.mod h1:FtnR40vK/nxjAtQRt4CTC7uKKWcqPsh4f3uaeJZmDfI=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/jackc/pgpassfile v1.0.0 h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=
@@ -10,6 +8,8 @@ github.com/jackc/pgx/v5 v5.8.0 h1:TYPDoleBBme0xGSAX3/+NujXXtpZn9HBONkQC7IEZSo=
 github.com/jackc/pgx/v5 v5.8.0/go.mod h1:QVeDInX2m9VyzvNeiCJVjCkNFqzsNb43204HshNSZKw=
 github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo=
 github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
+github.com/runnerq/runnerq-go v0.5.2-0.20261111174455-67b05a8d1e34 h1:zWinktvkw6qBZM+ailmDpPCalpLbV+Ct5JS2npko1Zc=
+github.com/runnerq/runnerq-go v0.5.2-0.20261111174455-67b05a8d1e34/go.mod h1:jQe/ShB9axxI7fZ6H9i26kwzkg3mPUUAp2pWcbM2h94=
 golang.org/x/sync v0.17.0 h1:l60nONMj9l5drqw6jlhIELNv9I0A4OFgRsG9k2oT9Ug=
 golang.org/x/sync v0.17.0/go.mod h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI=
 golang.org/x/text v0.29.0 h1:1neNs90w9YzJ9BocxfsQNHKuAT4pkghyXc4nhZ6sJvk=
