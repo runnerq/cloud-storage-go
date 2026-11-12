@@ -156,12 +156,12 @@ func (b *CloudBackend) WaitForResult(ctx context.Context, id uuid.UUID) (*storag
 }
 
 var (
-	_ storage.Storage                   = (*CloudBackend)(nil)
-	_ storage.BatchQueueStorage         = (*CloudBackend)(nil)
-	_ storage.AttemptLeaseStorage       = (*CloudBackend)(nil)
-	_ storage.CheckpointStorage         = (*CloudBackend)(nil)
-	_ storage.SpawnStorage              = (*CloudBackend)(nil)
-	_ storage.DependencyStorage         = (*CloudBackend)(nil)
-	_ storage.ResultWaiter              = (*CloudBackend)(nil)
+	_ storage.Storage                = (*CloudBackend)(nil)
+	_ storage.BatchQueueStorage      = (*CloudBackend)(nil)
+	_ storage.AttemptLeaseStorage    = (*CloudBackend)(nil)
+	_ storage.CheckpointStorage      = (*CloudBackend)(nil)
+	_ storage.SpawnStorage           = (*CloudBackend)(nil)
+	_ storage.DependencyStorage      = (*CloudBackend)(nil)
+	_ storage.ResultWaiter           = (*CloudBackend)(nil)
 	_ storage.SelfMaintainingStorage = (*CloudBackend)(nil)
 )
